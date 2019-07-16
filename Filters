@@ -1,0 +1,10 @@
+All JSON: json.value.string=="logInteractivePlaybackImpression" or json.value.string=="logInteractiveStateSnapshots" or json.value.string=="CompactConsolidatedLoggingEnvelope"
+
+Choice Point: json.value.string=="ikoChoiceOptionPoint"
+
+Cl2 JSON: ssl.record.content_type==23 and ip.src==192.168.7.32 and http.request.method=="POST" / json.value.string=="CompactConsolidatedLoggingEnvelope"
+
+Type1 JSON: json.value.string=="logInteractivePlaybackImpression"
+
+Type2 JSON: json.value.string=="logInteractiveStateSnapshots"
+
