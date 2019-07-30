@@ -34,9 +34,9 @@ def convert(s):
 # function for finding the intervals between which the traffic peaks lie
 # Returns the range where the number of get request are maximum.
 
-sample_file = 'Test1/Test1.pcapng'
+sample_file = 'Test3/Test3.pcapng'
 source_ip = '192.168.1.238'
-dest_ip = '54.194.132.188'
+dest_ip = '34.252.114.84'
 
 # initial range (ssl record length) of cl2 json files
 initial_range_cl2_noh = 4500
@@ -49,9 +49,9 @@ time_of_1st_choice_cl2 = 158
 
 # capturing application data files within the initial_range_cl2_noh and final_range_cl2_noh
 cl2_json_capture = pyshark.FileCapture(sample_file,
-                                       display_filter="(ssl.record.content_type==23 && ssl.record.length > {} && ssl.record.length < {} && frame.time_relative > {} && ip.src=={} && ip.dst=={})".format(
+                                       display_filter="(ssl.record.content_type==23 && ssl.record.length > {} && ssl.record.length < {} && frame.time_relative > {} && ip.src=={})".format(
                                            initial_range_cl2_noh, final_range_cl2_noh, time_of_1st_choice_cl2,
-                                           source_ip, dest_ip))
+                                           source_ip))
 
 # initial range (ssl record length) of server-site (Type1 and Type2) json files
 initial_range_server_noh = 2025
@@ -60,23 +60,25 @@ initial_range_server_noh = 2025
 final_range_server_noh = 2038
 
 # expected time of arrival of the first question
-time_of_1st_choice_server = 158
+time_of_1st_choice_server = time_of_1st_choice_cl2
 
 # capturing application data files within the initial_range_server_noh and final_range_server_noh
 server_json_capture = pyshark.FileCapture(sample_file,
-                                          display_filter="(ssl.record.content_type==23 && ip.dst=={} && ip.src=={} && frame.time_relative > {} && ssl.record.length > {} && ssl.record.length < {})".format(
-                                              source_ip, dest_ip, time_of_1st_choice_server, initial_range_server_noh,
+                                          display_filter="(ssl.record.content_type==23 && ip.dst=={} && frame.time_relative > {} && ssl.record.length > {} && ssl.record.length < {})".format(
+                                              source_ip, time_of_1st_choice_server, initial_range_server_noh,
                                               final_range_server_noh))
 
 # initializing global variables
 global next_pckt_h, next_type2_pckt, non_default_flag
 
+# capturing server-site type1 json
 for server_json in server_json_capture:
     if 2035 <= float(server_json.ssl.record_length) <= 2038:
         server_json_time = float(server_json.frame_info.time_relative)
         print("Type1 Json:", server_json_time)
         previous_flag = False
 
+        # capturing the cl2 jsons related to only type1 jsons
         for pckt in cl2_json_capture:
             # condition for considering the packets which has ssl record length in between initial_range_cl2_noh
             # and final_range_cl2_noh
@@ -130,12 +132,6 @@ for server_json in server_json_capture:
                     if not non_default_flag:
                         print("Default choice is selected", end="\n\n")
                         break
-                        # for next_type1_pckt in server_json_capture:
-                        #     if current_pckt_time + 10 <= float(
-                        #             next_type1_pckt.frame_info.time_relative) <= current_pckt_time + 20:
-                        #         if 2035 <= float(next_type1_pckt.ssl.record_length) <= 2038:
-                        #             print("Default choice is selected", end="\n\n")
-                        #             break
 
         if not previous_flag:
             print("Previous choice was default", end="\n\n")
