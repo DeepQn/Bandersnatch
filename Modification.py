@@ -1,5 +1,38 @@
+################################################################################
+# Modified_Algorithm.py
+# Author: Animesh Singh
+# Functionality: Predicts user-choices from Bandersnatch pacap files
+# Sample command: python Modified_Algorithm.py --pcap 1.pcapng ---client-ip 192.168.1.132 --output-file out.txt
+# Pre-requisite: pip install pyshark, argparse
+################################################################################
 import pyshark
+from argparse import ArgumentParser
+############################ Taking user inputs ################################
+# Argument Parser
+parser = ArgumentParser(description = "Script to filter packets from pcap file")
+# Input file path
+parser.add_argument("--pcap",
+  "-i",
+  required = True,
+  type = str)
+# client ip
+parser.add_argument("--client-ip",
+"-c",
+required = True,
+type = str)
+# Output file path
+parser.add_argument("--output-file",
+  "-o",
+  required = True,
+  type = str)
+# Parsing arguments
+args = parser.parse_args()
+pcap_file = args.pcap
+client_ip = args.client_ip
+output_fpath = args.output_file
 
+
+################################################################################
 
 # convert a list into a string
 def convert(s):
@@ -9,33 +42,9 @@ def convert(s):
 
     return new
 
-
-# taking pcapng file name as user input and store into sample_file
-# sample_file = input("Enter the file name: ")
-# sample_file = sample_file + ".pcapng"
-
-# # finding the indexes where '\' is present in the string
-# bcksl_list = [j for j, n in enumerate(sample_file) if n == "\\"]
-
-# # converting a '\' into '\\' so that string operations can be performed properly
-# sample_file = list(sample_file)
-# for index in bcksl_list:
-#     sample_file[index] = "\\\\"
-
-# # converting the a list into a string with the help of convert() function
-# sample_file = convert(sample_file)
-
-# # taking client ip as user input
-# source_ip = input("Enter your source ip: ")  # "192.168.1.238"
-
-# # taking server ip as user input
-# dest_ip = input("Enter netflix server ip: ")  # '45.57.51.132'
-
 # function for finding the intervals between which the traffic peaks lie
 # Returns the range where the number of get request are maximum.
 
-sample_file = 'Test3/Test3.pcapng'
-source_ip = '192.168.1.238'
 dest_ip = '34.252.114.84'
 
 # initial range (ssl record length) of cl2 json files
@@ -48,7 +57,7 @@ final_range_cl2_noh = 7000
 time_of_1st_choice_cl2 = 158
 
 # capturing application data files within the initial_range_cl2_noh and final_range_cl2_noh
-cl2_json_capture = pyshark.FileCapture(sample_file,
+cl2_json_capture = pyshark.FileCapture(pcap_file,
                                        display_filter="(ssl.record.content_type==23 && ssl.record.length > {} && ssl.record.length < {} && frame.time_relative > {} && ip.src=={})".format(
                                            initial_range_cl2_noh, final_range_cl2_noh, time_of_1st_choice_cl2,
                                            source_ip))
@@ -63,13 +72,14 @@ final_range_server_noh = 2038
 time_of_1st_choice_server = time_of_1st_choice_cl2
 
 # capturing application data files within the initial_range_server_noh and final_range_server_noh
-server_json_capture = pyshark.FileCapture(sample_file,
+server_json_capture = pyshark.FileCapture(pcap_file,
                                           display_filter="(ssl.record.content_type==23 && ip.dst=={} && frame.time_relative > {} && ssl.record.length > {} && ssl.record.length < {})".format(
                                               source_ip, time_of_1st_choice_server, initial_range_server_noh,
                                               final_range_server_noh))
 
 # initializing global variables
 global next_pckt_h, next_type2_pckt, non_default_flag
+count = 0
 
 # capturing server-site type1 json
 for server_json in server_json_capture:
@@ -133,5 +143,6 @@ for server_json in server_json_capture:
                         print("Default choice is selected", end="\n\n")
                         break
 
-        if not previous_flag:
+        if not previous_flag and count == 0:
+            count += 1
             print("Previous choice was default", end="\n\n")
